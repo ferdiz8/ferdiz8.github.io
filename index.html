@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calcolo Premio Totale</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 18px; }
+    table { border-collapse: collapse; width: 100%; max-width: 980px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #f4f4f4; }
+    .controls { max-width: 980px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .controls label { display: block; font-size: 14px; margin-bottom: 6px; }
+    input { padding: 6px; width: 100%; box-sizing: border-box; }
+    .row-actions { display: flex; gap: 8px; align-items: center; }
+    button { padding: 8px 12px; cursor: pointer; }
+    .result { margin-top: 14px; font-size: 16px; }
+    .ok { color: #0a6; }
+    .warn { color: #b80; }
+  </style>
+</head>
+<body>
+  <h2>Premio Totale</h2>
+
+  <div class="controls">
+    <div>
+      <label>Target premio totale da ottenere</label>
+      <input id="target" type="number" step="0.001" value="0"/>
+    </div>
+    <div>
+      <label>Opzione cambio prezzi (semplice)</label>
+      <select id="strategy" style="width:100%; padding:6px;">
+        <option value="single">Cambia un solo prezzo (prima riga con lato impostato)</option>
+        <option value="spread">Distribuisci l’aggiustamento su tutte le righe con prezzo non vuoto</option>
+      </select>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Lato (S o B)</th>
+        <th>Lotti (int)</th>
+        <th>Multiplier (int)</th>
+        <th>Prezzo (max 3 decimali) [variabile]</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <div class="result">
+    <div>Premio totale: <b id="premioTotale">0</b></div>
+    <div>Diff (PremioTotale - Target): <b id="diff">0</b></div>
+  </div>
+
+  <div style="margin-top: 12px; display:flex; gap:10px; align-items:center;">
+    <button id="btnCalc">Calcola</button>
+    <button id="btnSolve">Trova prezzi per avvicinare a target</button>
+    <span id="status"></span>
+  </div>
+
+<script>
+  const MAX_ROWS = 6;
+
+  const round3 = (x) => Math.round(x * 1000) / 1000;
+
+  function signFromLato(lato) {
+    // premio negativo se "S", positivo se "B"
+    if (lato === "S") return -1;
+    if (lato === "B") return  1;
+    return 0;
+  }
+
+  function getRowsData() {
+    const data = [];
+    for (let i = 0; i < MAX_ROWS; i++) {
+      const lato = document.getElementById(`lato-${i}`).value.trim();
+      const lotti = document.getElementById(`lotti-${i}`).value;
+      const mult  = document.getElementById(`mult-${i}`).value;
+      const prezzo= document.getElementById(`prezzo-${i}`).value;
+
+      data.push({
+        lato,
+        lotti: lotti === "" ? null : Number(lotti),
+        mult:  mult  === "" ? null : Number(mult),
+        prezzo: prezzo === "" ? null : Number(prezzo)
+      });
+    }
+    return data;
+  }
+
+  function computePremioTotal(data) {
+    let total = 0;
+    data.forEach(r => {
+      if (!r.lato || r.lotti == null || r.mult == null || r.prezzo == null) return;
+      const s = signFromLato(r.lato);
+      if (s === 0) return;
+
+      const premio = s * r.lotti * r.mult * r.prezzo;
+      total += premio;
+    });
+    return total;
+  }
+
+  function computeDiff(total, target) {
+    return total - target;
+  }
+
+  function renderRows() {
+    const tbody = document.getElementById("rows");
+    for (let i = 0; i < MAX_ROWS; i++) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td>
+          <input id="lato-${i}" maxlength="1" style="width:60px; text-transform:uppercase;" value="" placeholder="S/B"/>
+        </td>
+        <td><input id="lotti-${i}" type="number" step="1" style="width:90px" value=""/></td>
+        <td><input id="mult-${i}" type="number" step="1" style="width:100px" value=""/></td>
+        <td><input id="prezzo-${i}" type="number" step="0.001" style="width:120px" value=""/></td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function calcAndShow() {
+    const data = getRowsData();
+    const target = Number(document.getElementById("target").value);
+
+    const total = computePremioTotal(data);
+    const diff = computeDiff(total, target);
+
+    document.getElementById("premioTotale").textContent = round3(total).toFixed(3);
+    document.getElementById("diff").textContent = round3(diff).toFixed(3);
+  }
+
+  function solveSimple() {
+    const data = getRowsData();
+    const target = Number(document.getElementById("target").value);
+
+    // Consideriamo solo righe complete e valide
+    const usable = [];
+    for (let i = 0; i < MAX_ROWS; i++) {
+      const r = data[i];
+      if (!r.lato || r.lotti == null || r.mult == null || r.prezzo == null) continue;
+      const s = signFromLato(r.lato);
+      if (s === 0) continue;
+      usable.push(i);
+    }
+
+    if (usable.length === 0) {
+      document.getElementById("status").textContent = "Nessuna riga valida (serve lato, lotti, multiplier, prezzo).";
+      return;
+    }
+
+    const total = computePremioTotal(data);
+    const diff = total - target; // vogliamo diff -> 0
+
+    if (Math.abs(diff) < 0.0005) {
+      document.getElementById("status").textContent = "Target già raggiunto (entro tolleranza).";
+      return;
+    }
+
+    const strategy = document.getElementById("strategy").value;
+
+    // premio totale = somma s*lotti*mult*prezzo
+    // se cambi una sola variabile prezzo_k: deltaTotal = coeff_k * deltaPrezzo
+    // dove coeff_k = s*lotti*mult
+    const coeffs = usable.map(i => {
+      const r = data[i];
+      return { i, c: signFromLato(r.lato) * r.lotti * r.mult };
+    });
+
+    let newPrices = { ...data.map(r => r.prezzo) };
+
+    if (strategy === "single") {
+      // cambia prezzo della prima riga utilizzabile
+      const { i, c } = coeffs[0];
+      if (c === 0) {
+        document.getElementById("status").textContent = "Coeff=0 sulla prima riga: non posso aggiustare.";
+        return;
+      }
+      // diff_new = (total + c*(newP - oldP)) - target = diff + c*(deltaP) => 0
+      // deltaP = -diff / c
+      const deltaP = -diff / c;
+      const oldP = data[i].prezzo;
+      const pNew = round3(oldP + deltaP);
+      newPrices[i] = pNew;
+
+    } else {
+      // Distribuisci su tutte: scegliamo una ripartizione uniforme su deltaP proporzionale a 1/c
+      // Cerchiamo p_i' = p_i + deltaP * w_i con w_i = 1/c_i normalizzato
+      // così deltaTotal = sum(c_i * (deltaP*w_i)) = deltaP * sum(c_i*w_i)
+      // scegliamo w_i = 1/c_i => c_i*w_i = 1, somma = N
+      // => deltaP = -diff / N, quindi ogni riga cambia di (-diff/N)/c_i
+      const N = coeffs.length;
+      let sumNonZero = 0;
+      coeffs.forEach(({c}) => { if (c !== 0) sumNonZero++; });
+
+      if (sumNonZero === 0) {
+        document.getElementById("status").textContent = "Tutte le righe hanno coeff=0: impossibile.";
+        return;
+      }
+
+      coeffs.forEach(({i, c}) => {
+        if (c === 0) return;
+        const deltaP = (-diff / N) / c;
+        const oldP = data[i].prezzo;
+        newPrices[i] = round3(oldP + deltaP);
+      });
+    }
+
+    // applica prezzi arrotondati
+    usable.forEach(i => {
+      document.getElementById(`prezzo-${i}`).value = newPrices[i] == null ? "" : newPrices[i].toFixed(3);
+    });
+
+    // ricalcola
+    calcAndShow();
+
+    // verifica
+    const data2 = getRowsData();
+    const total2 = computePremioTotal(data2);
+    const diff2 = computeDiff(total2, target);
+    const tol = 0.001; // tolleranza 1e-3
+    document.getElementById("status").textContent =
+      (Math.abs(diff2) <= tol) ? `Fatto! Diff=${round3(diff2)} (tol=${tol})` : `Fatto ma non perfetto: Diff=${round3(diff2)} (tol=${tol})`;
+  }
+
+  // eventi
+  document.getElementById("btnCalc").addEventListener("click", calcAndShow);
+  document.getElementById("btnSolve").addEventListener("click", solveSimple);
+
+  document.getElementById("rows").addEventListener("input", (e) => {
+    // opzionale: ricalcolo live (puoi commentarlo se vuoi)
+    // calcAndShow();
+  });
+
+  renderRows();
+  calcAndShow();
+</script>
+</body>
+</html>
