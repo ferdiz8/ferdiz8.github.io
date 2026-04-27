@@ -257,8 +257,8 @@ function populateFields(params) {
     rows.forEach((row, index) => {
       const [lato, lotti, mult, prezzo] = row.split(',');
       document.getElementById(`lato-${index}`).value = lato;
-      document.getElementById(`lotti-${index}`).value = lotti;
-      document.getElementById(`mult-${index}`).value = mult;
+      document.getElementById(`lotti-${index}`).value = lotti.replace(',', '.');
+      document.getElementById(`mult-${index}`).value = mult.replace(',', '.');
       document.getElementById(`prezzo-${index}`).value = prezzo.replace(',', '.'); // replace comma with dot
     });
   }
