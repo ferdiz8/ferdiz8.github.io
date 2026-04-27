@@ -248,6 +248,7 @@
 }
 
 function populateFields(params) {
+  console.log('populateFields called with params:', params);
   if (params.target) {
     document.getElementById('target').value = params.target;
   }
