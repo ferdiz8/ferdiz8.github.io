@@ -257,7 +257,7 @@ function populateFields(params) {
     const rows = params.rows.split(';');
     rows.forEach((row, index) => {
       const [lato, lotti, mult, prezzo] = row.split(',');
-      document.getElementById(`lato-${index}`).value = lato;
+      document.getElementById(`lato-${index}`).value = lato.toUpperCase();
       document.getElementById(`lotti-${index}`).value = lotti.replace(',', '.');
       document.getElementById(`mult-${index}`).value = mult.replace(',', '.');
       document.getElementById(`prezzo-${index}`).value = prezzo.replace(',', '.'); // replace comma with dot
