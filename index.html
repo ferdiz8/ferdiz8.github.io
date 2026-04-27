@@ -136,9 +136,11 @@
   }
 
   function solveSimple() {
-    const data = getRowsData();
     console.log('solveSimple called');
+    const data = getRowsData();
+    console.log('data:', data);
     const target = Number(document.getElementById("target").value);
+    console.log('usable:', usable);
 
     // Consideriamo solo righe complete e valide
     const usable = [];
@@ -250,20 +252,17 @@
 
 function populateFields(params) {
   console.log('populateFields called with params:', params);
-  if (params.target) {
-    document.getElementById('target').value = params.target;
-  }
-  
-  if (params.rows) {
-    const rows = params.rows.split(';');
-    rows.forEach((row, index) => {
-      const [lato, lotti, mult, prezzo] = row.split(',');
-      document.getElementById(`lato-${index}`).value = lato.toUpperCase();
-      document.getElementById(`lotti-${index}`).value = lotti.replace(',', '.');
-      document.getElementById(`mult-${index}`).value = mult.replace(',', '.');
-      document.getElementById(`prezzo-${index}`).value = prezzo.replace(',', '.'); // replace comma with dot
-    });
-  }
+  const rows = params.rows.split(';');
+  rows.forEach((row, index) => {
+    console.log('row:', row);
+    const [lato, lotti, mult, prezzo] = row.split(',');
+    console.log('lato:', lato, 'lotti:', lotti, 'mult:', mult, 'prezzo:', prezzo);
+    document.getElementById(`lato-${index}`).value = lato.toUpperCase();
+    document.getElementById(`lotti-${index}`).value = lotti;
+    document.getElementById(`mult-${index}`).value = mult;
+    document.getElementById(`prezzo-${index}`).value = prezzo;
+  });
+  console.log('populateFields finished');
 }
 
 
