@@ -259,10 +259,11 @@ function populateFields(params) {
       document.getElementById(`lato-${index}`).value = lato;
       document.getElementById(`lotti-${index}`).value = lotti;
       document.getElementById(`mult-${index}`).value = mult;
-      document.getElementById(`prezzo-${index}`).value = prezzo;
+      document.getElementById(`prezzo-${index}`).value = prezzo.replace(',', '.'); // replace comma with dot
     });
   }
 }
+
 
 const params = getUrlParams();
 populateFields(params);
