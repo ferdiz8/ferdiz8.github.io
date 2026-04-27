@@ -239,6 +239,36 @@
 
   renderRows();
   calcAndShow();
+
+  // FUNZIONE PER LEGGERE URL 
+
+  function getUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  return Object.fromEntries(params.entries());
+}
+
+function populateFields(params) {
+  if (params.target) {
+    document.getElementById('target').value = params.target;
+  }
+  
+  if (params.rows) {
+    const rows = params.rows.split(';');
+    rows.forEach((row, index) => {
+      const [lato, lotti, mult, prezzo] = row.split(',');
+      document.getElementById(`lato-${index}`).value = lato;
+      document.getElementById(`lotti-${index}`).value = lotti;
+      document.getElementById(`mult-${index}`).value = mult;
+      document.getElementById(`prezzo-${index}`).value = prezzo;
+    });
+  }
+}
+
+const params = getUrlParams();
+populateFields(params);
+calcAndShow(); // trigger calculation
+
+
 </script>
 </body>
 </html>
