@@ -139,8 +139,8 @@
     console.log('solveSimple called');
     const data = getRowsData();
     console.log('data:', data);
-    const target = Number(document.getElementById("target").value);
-    console.log('usable:', usable);
+    const usableData = data.filter(row => row.lato !== '' && row.lotti !== null && row.mult !== null && row.prezzo !== null);
+    console.log('usableData:', usableData);
 
     // Consideriamo solo righe complete e valide
     const usable = [];
@@ -270,6 +270,12 @@ const params = getUrlParams();
 populateFields(params);
 calcAndShow(); // trigger calculation
 
+window.onload = function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('target') && params.has('rows')) {
+    populateFields(params);
+  }
+};
 
 </script>
 </body>
