@@ -72,19 +72,19 @@
     return 0;
   }
 
-  function getRowsData() {
+ function getRowsData() {
   const data = [];
   for (let i = 0; i < MAX_ROWS; i++) {
     const lato = document.getElementById(`lato-${i}`).value.trim();
-    if (lato === '') continue; // skip empty rows
+    if (lato === '') continue;
     const lotti = document.getElementById(`lotti-${i}`).value;
     const mult = document.getElementById(`mult-${i}`).value;
-    const prezzo = document.getElementById(`prezzo-${i}`).value;
+    const prezzo = document.getElementById(`prezzo-${i}`).value.replace(',', '.');
     data.push({
       lato,
       lotti: lotti === "" ? null : Number(lotti),
       mult: mult === "" ? null : Number(mult),
-      prezzo: prezzo === "" ? null : parseFloat(prezzo.replace(',', '.'))
+      prezzo: prezzo === "" ? null : parseFloat(prezzo)
     });
   }
   return data;
