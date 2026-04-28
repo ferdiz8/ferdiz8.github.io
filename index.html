@@ -72,23 +72,23 @@
     return 0;
   }
 
- function getRowsData() {
-  const data = [];
-  for (let i = 0; i < MAX_ROWS; i++) {
-    const lato = document.getElementById(`lato-${i}`).value.trim();
-    if (lato === '') continue;
-    const lotti = document.getElementById(`lotti-${i}`).value;
-    const mult = document.getElementById(`mult-${i}`).value;
-    const prezzo = document.getElementById(`prezzo-${i}`).value.replace(',', '.');
-    data.push({
-      lato,
-      lotti: lotti === "" ? null : Number(lotti),
-      mult: mult === "" ? null : Number(mult),
-      prezzo: prezzo === "" ? null : parseFloat(prezzo)
-    });
+  function getRowsData() {
+    const data = [];
+    for (let i = 0; i < MAX_ROWS; i++) {
+      const lato = document.getElementById(`lato-${i}`).value.trim();
+      const lotti = document.getElementById(`lotti-${i}`).value;
+      const mult  = document.getElementById(`mult-${i}`).value;
+      const prezzo= document.getElementById(`prezzo-${i}`).value;
+
+      data.push({
+        lato,
+        lotti: lotti === "" ? null : Number(lotti),
+        mult:  mult  === "" ? null : Number(mult),
+        prezzo: prezzo === "" ? null : Number(prezzo)
+      });
+    }
+    return data;
   }
-  return data;
-}
 
   function computePremioTotal(data) {
     let total = 0;
@@ -118,7 +118,7 @@
         </td>
         <td><input id="lotti-${i}" type="number" step="1" style="width:90px" value=""/></td>
         <td><input id="mult-${i}" type="number" step="1" style="width:100px" value=""/></td>
-        <td><input id="prezzo-${i}" type="text" step="0.001" style="width:120px" value=""/></td>
+        <td><input id="prezzo-${i}" type="number" step="0.001" style="width:120px" value=""/></td>
       `;
       tbody.appendChild(tr);
     }
@@ -136,15 +136,12 @@
   }
 
   function solveSimple() {
-    console.log('solveSimple called');
     const data = getRowsData();
-    console.log('data:', data);
-    const usable = data.filter(row => row.lato !== '' && row.lotti !== null && row.mult !== null && row.prezzo !== null);
-    console.log('usableData:', usableData);
+    const target = Number(document.getElementById("target").value);
 
     // Consideriamo solo righe complete e valide
     const usable = [];
-    for (let i = 0; i < data.length; i++) {
+    for (let i = 0; i < MAX_ROWS; i++) {
       const r = data[i];
       if (!r.lato || r.lotti == null || r.mult == null || r.prezzo == null) continue;
       const s = signFromLato(r.lato);
@@ -228,7 +225,7 @@
     const diff2 = computeDiff(total2, target);
     const tol = 0.001; // tolleranza 1e-3
     document.getElementById("status").textContent =
-      (Math.abs(diff2) <= tol) ? `Fatto! Diff=${round3(diff2)} (tol=${tol})` : `Fatto ma non perfetto: Diff=${round3(diff2)} (tol=${tol})`;
+      (Math.abs(diff2) <= tol) ? 'Fatto! Diff=${round3(diff2)} (tol=${tol})' : 'Fatto ma non perfetto: Diff=${round3(diff2)} (tol=${tol})';
   }
 
   // eventi
@@ -251,18 +248,20 @@
 }
 
 function populateFields(params) {
-  console.log('populateFields called with params:', params);
-  const rows = params.rows.split(';');
-  rows.forEach((row, index) => {
-    console.log('row:', row);
-    const [lato, lotti, mult, prezzo] = row.split(',');
-    console.log('lato:', lato, 'lotti:', lotti, 'mult:', mult, 'prezzo:', prezzo);
-    document.getElementById(`lato-${index}`).value = lato.toUpperCase();
-    document.getElementById(`lotti-${index}`).value = lotti;
-    document.getElementById(`mult-${index}`).value = mult;
-    document.getElementById(`prezzo-${index}`).value = prezzo;
-  });
-  console.log('populateFields finished');
+  if (params.target) {
+    document.getElementById('target').value = params.target;
+  }
+  
+  if (params.rows) {
+    const rows = params.rows.split(';');
+    rows.forEach((row, index) => {
+      const [lato, lotti, mult, prezzo] = row.split(',');
+      document.getElementById('lato-${index}').value = lato;
+      document.getElementById('lotti-${index}').value = lotti.replace(',', '.');
+      document.getElementById('mult-${index}').value = mult.replace(',', '.');
+      document.getElementById('prezzo-${index}').value = prezzo.replace(',', '.'); // replace comma with dot
+    });
+  }
 }
 
 
@@ -270,12 +269,6 @@ const params = getUrlParams();
 populateFields(params);
 calcAndShow(); // trigger calculation
 
-window.onload = function() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.has('target') && params.has('rows')) {
-    populateFields(params);
-  }
-};
 
 </script>
 </body>
