@@ -30,8 +30,8 @@
     <div>
       <label>Opzione cambio prezzi (semplice)</label>
       <select id="strategy" style="width:100%; padding:6px;">
-        <option value="spread">Distribuisci l’aggiustamento su tutte le righe con prezzo non vuoto</option>
         <option value="single">Cambia un solo prezzo (prima riga con lato impostato)</option>
+        <option value="spread">Distribuisci l’aggiustamento su tutte le righe con prezzo non vuoto</option>
       </select>
     </div>
   </div>
@@ -225,7 +225,7 @@
     const diff2 = computeDiff(total2, target);
     const tol = 0.001; // tolleranza 1e-3
     document.getElementById("status").textContent =
-      (Math.abs(diff2) <= tol) ? 'Fatto! Diff=${round3(diff2)} (tol=${tol})' : 'Fatto ma non perfetto: Diff=${round3(diff2)} (tol=${tol})';
+      (Math.abs(diff2) <= tol) ? `Fatto! Diff=${round3(diff2)} (tol=${tol})` : `Fatto ma non perfetto: Diff=${round3(diff2)} (tol=${tol})`;
   }
 
   // eventi
