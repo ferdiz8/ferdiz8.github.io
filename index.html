@@ -138,8 +138,6 @@
   function solveSimple() {
     const data = getRowsData();
     const target = Number(document.getElementById("target").value);
-
-    // Consideriamo solo righe complete e valide
     const usable = [];
     for (let i = 0; i < MAX_ROWS; i++) {
       const r = data[i];
@@ -155,77 +153,66 @@
     }
 
     const total = computePremioTotal(data);
-    const diff = total - target; // vogliamo diff -> 0
-
+    const diff = total - target;
     if (Math.abs(diff) < 0.0005) {
       document.getElementById("status").textContent = "Target già raggiunto (entro tolleranza).";
       return;
     }
 
     const strategy = document.getElementById("strategy").value;
-
-    // premio totale = somma s*lotti*mult*prezzo
-    // se cambi una sola variabile prezzo_k: deltaTotal = coeff_k * deltaPrezzo
-    // dove coeff_k = s*lotti*mult
     const coeffs = usable.map(i => {
       const r = data[i];
       return { i, c: signFromLato(r.lato) * r.lotti * r.mult };
     });
 
+    const minChange = 0.001; // minimum allowed change
+    const maxChange = 0.1; // maximum allowed change
     let newPrices = { ...data.map(r => r.prezzo) };
 
     if (strategy === "single") {
-      // cambia prezzo della prima riga utilizzabile
       const { i, c } = coeffs[0];
       if (c === 0) {
         document.getElementById("status").textContent = "Coeff=0 sulla prima riga: non posso aggiustare.";
         return;
       }
-      // diff_new = (total + c*(newP - oldP)) - target = diff + c*(deltaP) => 0
-      // deltaP = -diff / c
-      const deltaP = -diff / c;
+      let deltaP = -diff / c;
+      deltaP = Math.max(-maxChange, Math.min(deltaP, maxChange)); // clamp deltaP
+      if (Math.abs(deltaP) < minChange) {
+        deltaP = Math.sign(deltaP) * minChange;
+      }
       const oldP = data[i].prezzo;
       const pNew = round3(oldP + deltaP);
       newPrices[i] = pNew;
-
     } else {
-      // Distribuisci su tutte: scegliamo una ripartizione uniforme su deltaP proporzionale a 1/c
-      // Cerchiamo p_i' = p_i + deltaP * w_i con w_i = 1/c_i normalizzato
-      // così deltaTotal = sum(c_i * (deltaP*w_i)) = deltaP * sum(c_i*w_i)
-      // scegliamo w_i = 1/c_i => c_i*w_i = 1, somma = N
-      // => deltaP = -diff / N, quindi ogni riga cambia di (-diff/N)/c_i
       const N = coeffs.length;
       let sumNonZero = 0;
       coeffs.forEach(({c}) => { if (c !== 0) sumNonZero++; });
-
       if (sumNonZero === 0) {
         document.getElementById("status").textContent = "Tutte le righe hanno coeff=0: impossibile.";
         return;
       }
-
       coeffs.forEach(({i, c}) => {
         if (c === 0) return;
-        const deltaP = (-diff / N) / c;
+        let deltaP = (-diff / N) / c;
+        deltaP = Math.max(-maxChange, Math.min(deltaP, maxChange)); // clamp deltaP
+        if (Math.abs(deltaP) < minChange) {
+          deltaP = Math.sign(deltaP) * minChange;
+        }
         const oldP = data[i].prezzo;
         newPrices[i] = round3(oldP + deltaP);
-      });
+    });
     }
 
-    // applica prezzi arrotondati
     usable.forEach(i => {
-      document.getElementById(`prezzo-${i}`).value = newPrices[i] == null ? "" : newPrices[i].toFixed(3);
+    document.getElementById(`prezzo-${i}`).value = newPrices[i] == null ? "" : newPrices[i].toFixed(3);
     });
 
-    // ricalcola
     calcAndShow();
-
-    // verifica
     const data2 = getRowsData();
     const total2 = computePremioTotal(data2);
     const diff2 = computeDiff(total2, target);
-    const tol = 0.001; // tolleranza 1e-3
-    document.getElementById("status").textContent =
-      (Math.abs(diff2) <= tol) ? `Fatto! Diff=${round3(diff2)} (tol=${tol})` : `Fatto ma non perfetto: Diff=${round3(diff2)} (tol=${tol})`;
+    const tol = 0.001;
+    document.getElementById("status").textContent = (Math.abs(diff2) <= tol) ? `Fatto! Diff=${round3(diff2)} (tol=${tol})` : `Fatto ma non perfetto: Diff=${round3(diff2)} (tol=${tol})`;
   }
 
   // eventi
