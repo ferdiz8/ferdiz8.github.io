@@ -140,80 +140,46 @@
     const target = Number(document.getElementById("target").value);
     const usable = [];
     for (let i = 0; i < MAX_ROWS; i++) {
-      const r = data[i];
-      if (!r.lato || r.lotti == null || r.mult == null || r.prezzo == null) continue;
-      const s = signFromLato(r.lato);
-      if (s === 0) continue;
-      usable.push(i);
+    const r = data[i];
+    if (!r.lato || r.lotti == null || r.mult == null || r.prezzo == null) continue;
+    const s = signFromLato(r.lato);
+    if (s === 0) continue;
+    usable.push(i);
     }
 
     if (usable.length === 0) {
-      document.getElementById("status").textContent = "Nessuna riga valida (serve lato, lotti, multiplier, prezzo).";
-      return;
+    document.getElementById("status").textContent = "Nessuna riga valida (serve lato, lotti, multiplier, prezzo).";
+    return;
     }
 
-    const sIndex = usable.find(i => data[i].lato === "S");
-    const bIndex = usable.find(i => data[i].lato === "B");
-
-    if (sIndex === undefined || bIndex === undefined) {
-      // if only one side is present, use the original logic
-      const strategy = document.getElementById("strategy").value;
-      const coeffs = usable.map(i => {
-        const r = data[i];
-        return { i, c: signFromLato(r.lato) * r.lotti * r.mult };
-      });
-      const minChange = 0.001; // minimum allowed change
-      const maxChange = 0.9; // maximum allowed change
-      let newPrices = { ...data.map(r => r.prezzo) };
-      if (strategy === "single") {
-        const { i, c } = coeffs[0];
-        if (c === 0) {
-          document.getElementById("status").textContent = "Coeff=0 sulla prima riga: non posso aggiustare.";
-          return;
-        }
-        let deltaP = (target - computePremioTotal(data)) / c;
-        deltaP = Math.max(-maxChange, Math.min(deltaP, maxChange)); // clamp deltaP
-        if (Math.abs(deltaP) < minChange) {
-          deltaP = Math.sign(deltaP) * minChange;
-        }
-        const oldP = data[i].prezzo;
-        const pNew = round3(oldP + deltaP);
-        newPrices[i] = pNew;
-      } else {
-        const N = coeffs.length;
-        let sumNonZero = 0;
-        coeffs.forEach(({c}) => { if (c !== 0) sumNonZero++; });
-        if (sumNonZero === 0) {
-          document.getElementById("status").textContent = "Tutte le righe hanno coeff=0: impossibile.";
-          return;
-        }
-        coeffs.forEach(({i, c}) => {
-          if (c === 0) return;
-          let deltaP = ((target - computePremioTotal(data)) / N) / c;
-          deltaP = Math.max(-maxChange, Math.min(deltaP, maxChange)); // clamp deltaP
-          if (Math.abs(deltaP) < minChange) {
-            deltaP = Math.sign(deltaP) * minChange;
-          }
-          const oldP = data[i].prezzo;
-          newPrices[i] = round3(oldP + deltaP);
-        });
-      }
-      usable.forEach(i => {
-        document.getElementById(`prezzo-${i}`).value = newPrices[i] == null ? "" : newPrices[i].toFixed(3);
-      });
+    const strategy = document.getElementById("strategy").value;
+    if (strategy === "single") {
+    const { i, c } = usable.map(i => {
+      const r = data[i];
+      return { i, c: signFromLato(r.lato) * r.lotti * r.mult };
+    })[0];
+    if (c === 0) {
+      document.getElementById("status").textContent = "Coeff=0 sulla prima riga: non posso aggiustare.";
+      return;
+    }
+    let deltaP = (target - computePremioTotal(data)) / c;
+    deltaP = Math.max(-0.9, Math.min(deltaP, 0.9)); // clamp deltaP
+    const oldP = data[i].prezzo;
+    const pNew = round3(oldP + deltaP);
+    document.getElementById(`prezzo-${i}`).value = pNew.toFixed(3);
     } else {
-      // distribute changes between S and B sides
-      const cS = signFromLato(data[sIndex].lato) * data[sIndex].lotti * data[sIndex].mult;
-      const cB = signFromLato(data[bIndex].lato) * data[bIndex].lotti * data[bIndex].mult;
-      const totalCoeff = Math.abs(cS) + Math.abs(cB);
-      const deltaP_S = ((target - computePremioTotal(data)) * Math.abs(cS) / totalCoeff) / cS;
-      const deltaP_B = ((target - computePremioTotal(data)) * Math.abs(cB) / totalCoeff) / cB;
-      const oldP_S = data[sIndex].prezzo;
-      const oldP_B = data[bIndex].prezzo;
-      const pNew_S = round3(oldP_S + deltaP_S);
-      const pNew_B = round3(oldP_B + deltaP_B);
-      document.getElementById(`prezzo-${sIndex}`).value = pNew_S.toFixed(3);
-      document.getElementById(`prezzo-${bIndex}`).value = pNew_B.toFixed(3);
+    const coeffs = usable.map(i => {
+      const r = data[i];
+      return { i, c: signFromLato(r.lato) * r.lotti * r.mult };
+    });
+    const totalCoeff = coeffs.reduce((sum, { c }) => sum + Math.abs(c), 0);
+    coeffs.forEach(({ i, c }) => {
+      let deltaP = ((target - computePremioTotal(data)) * Math.abs(c) / totalCoeff) / c;
+      deltaP = Math.max(-0.9, Math.min(deltaP, 0.9)); // clamp deltaP
+      const oldP = data[i].prezzo;
+      const pNew = round3(oldP + deltaP);
+      document.getElementById(`prezzo-${i}`).value = pNew.toFixed(3);
+    });
     }
 
     calcAndShow();
