@@ -236,10 +236,6 @@
     // calcAndShow();
   });
 
-  params = getUrlParams();
-  renderRows();
-  populateFields(params);
-  calcAndShow();
 
   // FUNZIONE PER LEGGERE URL 
 
@@ -267,6 +263,7 @@ function populateFields(params) {
 
 
 const params = getUrlParams();
+renderRows();
 populateFields(params);
 calcAndShow(); // trigger calculation
 
